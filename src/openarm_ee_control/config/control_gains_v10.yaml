@@ -1,0 +1,37 @@
+# Motor gains for the SagresOverdose OpenArm v1.0 (used by urdf/sagres_openarm_v10.urdf.xacro).
+# Sent to each Damiao motor's MIT controller: torque = kp * (q_cmd - q) + kd * (dq_cmd - dq).
+#   kp: stiffness [Nm/rad]  -> higher = tracks position more tightly, less sag under gravity
+#   kd: damping [Nm*s/rad]  -> raise together with kp to avoid oscillation
+# Copied from upstream openarm_description v1.0 config/arm/control_gains.yaml.
+# Rebuild (pixi run build) and relaunch after editing.
+joint1:
+  kp: 70.0
+  kd: 2.75
+
+joint2:
+  kp: 70.0
+  kd: 2.5
+
+joint3:
+  kp: 70.0
+  kd: 2.0
+
+joint4:
+  kp: 60.0
+  kd: 2.0
+
+joint5:
+  kp: 10.0
+  kd: 0.7
+
+joint6:
+  kp: 10.0
+  kd: 0.6
+
+joint7:
+  kp: 10.0
+  kd: 0.5
+
+hand:
+  kp: 5.0
+  kd: 0.1

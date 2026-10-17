@@ -17,6 +17,7 @@ SagresOverdose OpenArm: upstream openarm_description v1.0 bimanual (openarm_v10.
 with two changes, reproducing the setup from SagresOverdose branch `urdf` (ros2ws/README.md):
   * the xyz / rpy args are wired to the world -> openarm_body_link0 joint (upstream declares
     them but drops them); default z = 0.628 m puts the shoulder mounts at 0.628 + 0.697 = 1.325 m
+  * motor gains from openarm_ee_control/config/control_gains_v10.yaml (control_gains_file arg)
   * camera_link, fixed to world at the pose used by ros2ws/.../robot_bringup.launch.py
     (disable with camera:=false if a separate static TF publishes it)
 -->
@@ -29,6 +30,7 @@ with two changes, reproducing the setup from SagresOverdose branch `urdf` (ros2w
   <xacro:arg name="no_prefix" default="false"/>
   <xacro:arg name="parent" default="world" />
   <xacro:arg name="xyz" default="0 0 0.628" />
+  <xacro:arg name="control_gains_file" default="$(find openarm_ee_control)/config/control_gains_v10.yaml" />
   <xacro:arg name="rpy" default="0 0 0" />
   <xacro:arg name="ros2_control" default="false" />
   <xacro:arg name="can_interface" default="can0" />
@@ -61,7 +63,7 @@ with two changes, reproducing the setup from SagresOverdose branch `urdf` (ros2w
   rpy="$(arg rpy)"
   body_type="$(arg body_type)"
   joint_limits="${xacro.load_yaml(arm_cfg_root + '/joint_limits.yaml')}"
-  control_gains="${xacro.load_yaml(arm_cfg_root + '/control_gains.yaml')}"
+  control_gains="${xacro.load_yaml('$(arg control_gains_file)')}"
   inertials="${xacro.load_yaml(arm_cfg_root + '/inertials.yaml')}"
   kinematics="${xacro.load_yaml(arm_cfg_root + '/kinematics.yaml')}"
   kinematics_link="${xacro.load_yaml(arm_cfg_root + '/kinematics_link.yaml')}"

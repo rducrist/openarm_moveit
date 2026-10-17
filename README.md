@@ -59,6 +59,9 @@ pixi run can-up                                         # can0 = right, can1 = l
 ros2 launch openarm_ee_control demo.launch.py use_fake_hardware:=false
 ```
 
+Motor gains (kp/kd per joint and gripper) are in `src/openarm_ee_control/config/control_gains_v10.yaml`;
+rebuild and relaunch after editing.
+
 Velocities are capped at 2 rad/s in `config/joint_limits.yaml` and scaled by 0.2 by default
 (the URDF allows ~21 rad/s). Keep the e-stop in reach for the first run.
 
