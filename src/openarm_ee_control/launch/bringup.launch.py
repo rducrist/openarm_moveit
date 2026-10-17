@@ -86,7 +86,30 @@ def build_robot_description(ctx) -> str:
     return xacro.process_file(wrapper, mappings={**mappings, "model": tmp.name}).toxml()
 
 
+def check_can_interfaces(ctx):
+    """Refuse to start real hardware on a CAN interface that is missing or down.
+
+    The OpenArm driver does not report failed CAN sends: on a down interface it logs a
+    successful activation while no frame reaches the motors and joint states stay at zero.
+    """
+    problems = []
+    for arg in ("right_can_interface", "left_can_interface"):
+        iface = LaunchConfiguration(arg).perform(ctx)
+        try:
+            with open(f"/sys/class/net/{iface}/flags", encoding="ascii") as f:
+                up = int(f.read().strip(), 16) & 0x1  # IFF_UP
+        except FileNotFoundError:
+            problems.append(f"{iface} ({arg}) does not exist: is the CAN adapter plugged in?")
+            continue
+        if not up:
+            problems.append(f"{iface} ({arg}) is down: run `pixi run can-up` (needed after every replug)")
+    if problems:
+        raise RuntimeError("use_fake_hardware:=false but:\n  " + "\n  ".join(problems))
+
+
 def launch_setup(ctx):
+    if LaunchConfiguration("use_fake_hardware").perform(ctx).lower() != "true":
+        check_can_interfaces(ctx)
     share = get_package_share_directory(PKG)
     cfg = lambda f: os.path.join(share, "config", f)  # noqa: E731
     version = _arm_version(LaunchConfiguration("arm_type").perform(ctx))
