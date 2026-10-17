@@ -2,23 +2,26 @@
 # Sent to each Damiao motor's MIT controller: torque = kp * (q_cmd - q) + kd * (dq_cmd - dq).
 #   kp: stiffness [Nm/rad]  -> higher = tracks position more tightly, less sag under gravity
 #   kd: damping [Nm*s/rad]  -> raise together with kp to avoid oscillation
-# Copied from upstream openarm_description v1.0 config/arm/control_gains.yaml.
+# Based on upstream openarm_description v1.0 config/arm/control_gains.yaml.
+# joint1-4 raised ~1.5x kp / ~1.22x kd (sqrt 1.5) on 2026-10-17: the left arm sagged
+# 3.7 deg on joint1 at rest (4.4 Nm / kp 70). Upstream: kp 70/70/70/60, kd 2.75/2.5/2.0/2.0.
+# Note: one file for both arms (both ros2_control blocks read it).
 # Rebuild (pixi run build) and relaunch after editing.
 joint1:
-  kp: 70.0
-  kd: 2.75
+  kp: 105.0
+  kd: 3.35
 
 joint2:
-  kp: 70.0
-  kd: 2.5
+  kp: 105.0
+  kd: 3.05
 
 joint3:
-  kp: 70.0
-  kd: 2.0
+  kp: 105.0
+  kd: 2.45
 
 joint4:
-  kp: 60.0
-  kd: 2.0
+  kp: 90.0
+  kd: 2.45
 
 joint5:
   kp: 10.0
