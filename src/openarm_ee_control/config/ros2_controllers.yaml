@@ -23,16 +23,19 @@ left_arm_controller:
     action_monitor_rate: 20.0
     allow_partial_joints_goal: false
     open_loop_control: false
+    # Joint-space tolerances [rad]. The motors run a pure PD loop (no gravity feedforward), so
+    # under load they settle short of the target: 0.103 rad on joint1 was measured. A tighter
+    # goal tolerance aborts motions that physically arrived.
     constraints:
       stopped_velocity_tolerance: 0.05
       goal_time: 1.0
-      openarm_left_joint1: {trajectory: 0.2, goal: 0.02}
-      openarm_left_joint2: {trajectory: 0.2, goal: 0.02}
-      openarm_left_joint3: {trajectory: 0.2, goal: 0.02}
-      openarm_left_joint4: {trajectory: 0.2, goal: 0.02}
-      openarm_left_joint5: {trajectory: 0.2, goal: 0.02}
-      openarm_left_joint6: {trajectory: 0.2, goal: 0.02}
-      openarm_left_joint7: {trajectory: 0.2, goal: 0.02}
+      openarm_left_joint1: {trajectory: 0.3, goal: 0.1}
+      openarm_left_joint2: {trajectory: 0.3, goal: 0.1}
+      openarm_left_joint3: {trajectory: 0.3, goal: 0.1}
+      openarm_left_joint4: {trajectory: 0.3, goal: 0.1}
+      openarm_left_joint5: {trajectory: 0.3, goal: 0.1}
+      openarm_left_joint6: {trajectory: 0.3, goal: 0.1}
+      openarm_left_joint7: {trajectory: 0.3, goal: 0.1}
 
 right_arm_controller:
   ros__parameters:
@@ -46,13 +49,13 @@ right_arm_controller:
     constraints:
       stopped_velocity_tolerance: 0.05
       goal_time: 1.0
-      openarm_right_joint1: {trajectory: 0.2, goal: 0.02}
-      openarm_right_joint2: {trajectory: 0.2, goal: 0.02}
-      openarm_right_joint3: {trajectory: 0.2, goal: 0.02}
-      openarm_right_joint4: {trajectory: 0.2, goal: 0.02}
-      openarm_right_joint5: {trajectory: 0.2, goal: 0.02}
-      openarm_right_joint6: {trajectory: 0.2, goal: 0.02}
-      openarm_right_joint7: {trajectory: 0.2, goal: 0.02}
+      openarm_right_joint1: {trajectory: 0.3, goal: 0.1}
+      openarm_right_joint2: {trajectory: 0.3, goal: 0.1}
+      openarm_right_joint3: {trajectory: 0.3, goal: 0.1}
+      openarm_right_joint4: {trajectory: 0.3, goal: 0.1}
+      openarm_right_joint5: {trajectory: 0.3, goal: 0.1}
+      openarm_right_joint6: {trajectory: 0.3, goal: 0.1}
+      openarm_right_joint7: {trajectory: 0.3, goal: 0.1}
 
 left_gripper_controller:
   ros__parameters:
