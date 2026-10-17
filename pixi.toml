@@ -36,6 +36,8 @@ ros-jazzy-moveit-servo = "*"
 ros-jazzy-moveit-py = "*"
 ros-jazzy-pilz-industrial-motion-planner = "*"
 ros-jazzy-trac-ik-kinematics-plugin = "*"
+# gravity compensation (rigid-body dynamics from the URDF)
+pinocchio = "*"
 # openarm_description lists these in package.xml (Gazebo / ZED camera variants)
 ros-jazzy-ros-gz = "*"
 ros-jazzy-zed-description = "*"

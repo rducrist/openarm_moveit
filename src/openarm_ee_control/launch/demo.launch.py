@@ -26,6 +26,8 @@ DEFAULTS = {
     "can_fd": "true",
     "rviz": "true",
     "pose_server": "true",
+    "gravity_comp": "true",
+    "gravity_comp_scale": "1.0",
     "left_ee_link": "",
     "right_ee_link": "",
     "planning_frame": "world",

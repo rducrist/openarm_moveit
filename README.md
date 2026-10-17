@@ -59,6 +59,14 @@ pixi run can-up                                         # can0 = right, can1 = l
 ros2 launch openarm_ee_control demo.launch.py use_fake_hardware:=false
 ```
 
+Gravity compensation is on by default (`gravity_comp:=true`, `gravity_comp_scale:=1.0`): the
+`gravity_comp` node computes the holding torque per joint from the URDF (Pinocchio) and the
+measured joint positions and sends it through `<side>_gravity_controller` (effort interface) as
+motor feedforward, next to the trajectory controller's position command. Torques are clamped per
+joint, ramped in over 2 s, faded to zero if `/joint_states` stops for 0.2 s, and zeroed on
+shutdown. Every 5 s it logs model torque vs. measured effort per arm. Turn it off with
+`gravity_comp:=false`, or start lower with e.g. `gravity_comp_scale:=0.5`.
+
 Motor gains (kp/kd per joint and gripper) are in `src/openarm_ee_control/config/control_gains_v10.yaml`;
 rebuild and relaunch after editing.
 
@@ -78,7 +86,7 @@ src/openarm_ee_control    this repo: launch, MoveIt/controller config, pose serv
 
 ROS 2 Jazzy base, `xacro`, `robot_state_publisher`, `rviz2`, `ros2_control` + `ros2_controllers`,
 `moveit` (+ `moveit_configs_utils`, `moveit_servo`, `moveit_py`, Pilz), `trac_ik_kinematics_plugin`,
-colcon and a C++ toolchain. `ros_gz` and `zed_description` are only there because
+Pinocchio (gravity compensation), colcon and a C++ toolchain. `ros_gz` and `zed_description` are only there because
 `openarm_description` declares them.
 
 ## Notes

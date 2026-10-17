@@ -23,6 +23,7 @@ setup(
         "console_scripts": [
             "ee_pose_server = openarm_ee_control.ee_pose_server:main",
             "send_pose = openarm_ee_control.send_pose:main",
+            "gravity_comp = openarm_ee_control.gravity_comp:main",
         ],
     },
 )

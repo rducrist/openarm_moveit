@@ -5,6 +5,7 @@ Starts:
   * joint_state_broadcaster, per-arm JointTrajectoryControllers, gripper controllers
   * move_group (OMPL + Pilz) and RViz with the MotionPlanning panel
   * ee_pose_server: PoseStamped topics -> MoveIt plans -> execution
+  * gravity_comp (gravity_comp:=true): URDF gravity torque as motor feedforward
 
 Robot model:
   * default: upstream openarm_description v2.0 (or v1.0 with arm_type:=v1.0)
@@ -172,6 +173,14 @@ def launch_setup(ctx):
         spawn("left_arm_controller", "right_arm_controller",
               "left_gripper_controller", "right_gripper_controller"),
     ]
+    if LaunchConfiguration("gravity_comp").perform(ctx).lower() == "true":
+        controllers.append(spawn("left_gravity_controller", "right_gravity_controller"))
+        nodes.append(Node(
+            package=PKG,
+            executable="gravity_comp",
+            output="screen",
+            parameters=[{"scale": float(LaunchConfiguration("gravity_comp_scale").perform(ctx))}],
+        ))
     return nodes + [TimerAction(period=1.0, actions=controllers)]
 
 
@@ -190,6 +199,10 @@ def generate_launch_description():
         DeclareLaunchArgument("can_fd", default_value="true"),
         DeclareLaunchArgument("rviz", default_value="true"),
         DeclareLaunchArgument("pose_server", default_value="true"),
+        DeclareLaunchArgument("gravity_comp", default_value="true",
+                              description="Feedforward gravity torque from the URDF (gravity_comp node)."),
+        DeclareLaunchArgument("gravity_comp_scale", default_value="1.0",
+                              description="Fraction of the model gravity torque applied (0..1)."),
         DeclareLaunchArgument("left_ee_link", default_value="",
                               description="Link left pose goals refer to. Empty = TCP of arm_type."),
         DeclareLaunchArgument("right_ee_link", default_value="",
