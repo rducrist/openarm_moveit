@@ -1,0 +1,65 @@
+[workspace]
+name = "openarm_moveit"
+description = "OpenArm end-effector pose control with MoveIt 2 (ROS 2 Jazzy via RoboStack)"
+channels = ["https://prefix.dev/robostack-jazzy", "https://prefix.dev/conda-forge"]
+platforms = ["linux-64"]
+
+[activation]
+# Sources the colcon overlay once it has been built (see `pixi run build`).
+scripts = ["scripts/activate.sh"]
+
+[activation.env]
+ROS_DOMAIN_ID = "0"
+RCUTILS_COLORIZED_OUTPUT = "1"
+# Keep DDS traffic on this machine unless you need to reach other hosts.
+ROS_AUTOMATIC_DISCOVERY_RANGE = "LOCALHOST"
+
+[dependencies]
+python = "3.12.*"
+ros-jazzy-ros-base = "*"
+# description / visualisation
+ros-jazzy-xacro = "*"
+ros-jazzy-robot-state-publisher = "*"
+ros-jazzy-joint-state-publisher = "*"
+ros-jazzy-joint-state-publisher-gui = "*"
+ros-jazzy-rviz2 = "*"
+ros-jazzy-rviz-default-plugins = "*"
+# ros2_control
+ros-jazzy-ros2-control = "*"
+ros-jazzy-ros2-controllers = "*"
+ros-jazzy-hardware-interface = "*"
+ros-jazzy-controller-manager = "*"
+# MoveIt 2
+ros-jazzy-moveit = "*"
+ros-jazzy-moveit-configs-utils = "*"
+ros-jazzy-moveit-servo = "*"
+ros-jazzy-moveit-py = "*"
+ros-jazzy-pilz-industrial-motion-planner = "*"
+ros-jazzy-trac-ik-kinematics-plugin = "*"
+# openarm_description lists these in package.xml (Gazebo / ZED camera variants)
+ros-jazzy-ros-gz = "*"
+ros-jazzy-zed-description = "*"
+# build tooling
+colcon-common-extensions = "*"
+cmake = ">=3.23"
+ninja = "*"
+pkg-config = "*"
+make = "*"
+compilers = "*"
+cli11 = "*"
+setuptools = "<80"
+
+[tasks]
+build = { cmd = "colcon build --symlink-install --merge-install --cmake-args -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF", description = "Build the colcon workspace in src/" }
+clean = { cmd = "rm -rf build install log", description = "Remove colcon build artefacts" }
+
+# Fake hardware (mock_components): safe to run anywhere.
+demo = { cmd = "ros2 launch openarm_ee_control demo.launch.py", depends-on = ["build"], description = "MoveIt demo with the SagresOverdose OpenArm v1.0 model (mock hardware)" }
+sim = { cmd = "ros2 launch openarm_ee_control bringup.launch.py", depends-on = ["build"], description = "MoveIt + RViz on mock hardware" }
+# Real robot over CAN. Bring the CAN interfaces up first (`pixi run can-up`).
+real = { cmd = "ros2 launch openarm_ee_control bringup.launch.py use_fake_hardware:=false", depends-on = ["build"], description = "MoveIt + RViz on the real OpenArm" }
+can-up = { cmd = "bash scripts/can_up.sh", description = "Configure can0/can1 for CAN-FD (needs sudo)" }
+
+# Example: send an end-effector pose goal.
+send-pose = { cmd = "ros2 run openarm_ee_control send_pose", description = "Send an EE pose goal, e.g. pixi run send-pose -- --arm right --xyz 0.3 -0.2 0.3" }
+smoke = { cmd = "bash scripts/smoke_test.sh", depends-on = ["build"], description = "Headless bringup + pose goals on both arms" }

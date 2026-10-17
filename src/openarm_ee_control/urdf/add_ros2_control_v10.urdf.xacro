@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<!-- Wraps a custom OpenArm v1.0 URDF that has no <ros2_control> block and adds the upstream
+     one (mock_components or openarm_hardware/OpenArmHW over CAN). Used by bringup.launch.py. -->
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="openarm">
+  <xacro:arg name="model" default="" />
+  <xacro:arg name="use_fake_hardware" default="true" />
+  <xacro:arg name="left_can_interface" default="can1" />
+  <xacro:arg name="right_can_interface" default="can0" />
+  <xacro:arg name="can_fd" default="true" />
+
+  <xacro:include filename="$(arg model)" />
+  <xacro:include filename="$(find openarm_description)/assets/robot/openarm_v1.0/urdf/ros2_control/openarm.bimanual.ros2_control.xacro" />
+
+  <xacro:openarm_bimanual_ros2_control
+    arm_type="v10"
+    control_gains="${xacro.load_yaml('$(find openarm_description)/assets/robot/openarm_v1.0/config/arm/control_gains.yaml')}"
+    use_fake_hardware="$(arg use_fake_hardware)"
+    left_can_interface="$(arg left_can_interface)"
+    right_can_interface="$(arg right_can_interface)"
+    can_fd="$(arg can_fd)"
+    hand="true"
+    ee_type="parallel_link"
+    left_arm_prefix="left_"
+    right_arm_prefix="right_" />
+</robot>
