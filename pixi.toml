@@ -9,7 +9,7 @@ platforms = ["linux-64"]
 scripts = ["scripts/activate.sh"]
 
 [activation.env]
-ROS_DOMAIN_ID = "0"
+# ROS_DOMAIN_ID is set in scripts/activate.sh so an exported value is not overridden.
 RCUTILS_COLORIZED_OUTPUT = "1"
 # Keep DDS traffic on this machine unless you need to reach other hosts.
 ROS_AUTOMATIC_DISCOVERY_RANGE = "LOCALHOST"

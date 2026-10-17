@@ -5,6 +5,14 @@ set -uo pipefail
 
 # Usage: smoke_test.sh [launch file]   (default demo.launch.py = SagresOverdose v1.0 model)
 LAUNCH=${1:-demo.launch.py}
+
+# Isolated DDS domain so the mock stack and its test commands can never reach a real robot
+# running on the default domain. Refuse to run if anything is already on it.
+export ROS_DOMAIN_ID=${SMOKE_DOMAIN_ID:-77}
+if [[ -n "$(timeout 10 ros2 node list --no-daemon 2>/dev/null)" ]]; then
+  echo "ROS nodes already running on domain $ROS_DOMAIN_ID; refusing to start the mock stack."
+  exit 1
+fi
 LOG=$(mktemp -t openarm_smoke.XXXX.log)
 echo "launching $LAUNCH (log: $LOG)"
 # Own process group: background jobs of a non-interactive shell ignore SIGINT, so stop the
