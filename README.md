@@ -52,6 +52,78 @@ Poses refer to the TCP link: `openarm_<side>_hand_tcp` (v1.0) or `openarm_<side>
 executes on its own `*_arm_controller`, so both arms move concurrently and a new target replaces
 the running one. The RViz MotionPlanning panel works as usual (groups `left_arm`, `right_arm`).
 
+More topics, used by the replay tool and the policy node:
+
+| Topic | Type | |
+|---|---|---|
+| `/openarm/{left,right}/target_path_cartesian` | `geometry_msgs/PoseArray` (in) | straight-line moves through all poses, one trajectory |
+| `/openarm/{left,right}/target_joints` | `sensor_msgs/JointState` (in) | OMPL plan + execute to joint positions (name + position) |
+| `/openarm/{left,right}/gripper` | `std_msgs/Float64` (in) | 0 = open (finger 0.044 m) .. 1 = closed (0.0 m) |
+| `/openarm/{left,right}/stop` | `std_msgs/Empty` (in) | cancel the running motion |
+| `/openarm/{left,right}/gripper_status` | `std_msgs/String` (out) | `executing`, `succeeded`, `failed: ...` |
+
+## Running an R2R2R diffusion policy
+
+`openarm_policy` runs a [tinydp](https://github.com/Max-Fu/tinydp) diffusion policy trained on
+[Real2Render2Real](https://github.com/uynitsuj/real2render2real) data, step by step. Each episode
+starts with **go to start pose → start policy** (both confirmed with Enter); then each step
+goes observe (camera + TCP poses + commanded grippers) → predict a chunk of absolute TCP poses → execute the
+first `--steps-per-move` of them as one Cartesian move (MoveIt, collision-checked) → wait until
+the arm stops → observe again. The images the policy was trained on show the rendered arm, so
+it needs the real arm in the loop; mock hardware only tests the plumbing.
+
+```bash
+git submodule update --init third_party/tinydp   # model code (pinned to R2R2R's commit)
+pixi install -e policy                           # torch 2.5.1 (CUDA 12.4), diffusers, timm
+
+# terminal 1: robot
+ros2 launch openarm_ee_control demo.launch.py use_fake_hardware:=false
+# terminal 2: camera driver publishing sensor_msgs/Image (rgb8/bgr8), same pose and aspect
+#             ratio as the camera the policy was rendered with
+# terminal 3: replay a generated episode first (checks frame, TCP, gripper)
+pixi run replay -- <output_data/.../successes/env_X> --mode dry   # shows it in RViz only
+pixi run replay -- <output_data/.../successes/env_X> --arms right  # Enter per move
+# store the sim's start pose next to the checkpoint (once; no robot needed)
+pixi run replay -- <output_data/.../successes/env_X> --save-start <folder>/start_pose.yaml
+# then the policy
+pixi run -e policy policy -- --ckpt-dir <folder> --image-topic <topic> --mode dry
+pixi run -e policy policy -- --ckpt-dir <folder> --image-topic <topic>             # step mode
+```
+
+The checkpoint folder holds `run.yaml`, `action_statistics.json`, `checkpoint_<N>.pt` and,
+optionally, `start_pose.yaml`. Everything else is read from `run.yaml`: which arm(s) the policy
+drives, history length, chunk length, image size.
+
+- Start pose: the posture the sim episodes start from, i.e. the joint angles of an episode's
+  first frame (`joint_angles` + `joint_names.txt`), reached with an OMPL joint goal, one arm
+  after the other. Joint angles reproduce the sim's arm posture (elbow) in the images; a TCP
+  pose alone would not on a 7-DoF arm, so `tcp` is only the fallback for episodes without
+  joint data. Taken from `--start` (YAML or episode) or `<ckpt-dir>/start_pose.yaml`. After
+  reaching it, the node warns if the policy arm's TCP is outside the positions in the
+  training data (`action_statistics.json`). `h` at any prompt goes back to it for a new
+  episode; an episode also ends after `--max-steps`.
+
+- Modes: `dry` predicts and shows the chunk (`/openarm/<arm>/planned_path` in RViz) without
+  moving; `step` (default) executes a step on Enter (`r` re-samples, `a` switches to auto);
+  `auto` runs until `--max-steps`. Ctrl+C stops the arm and returns to step mode.
+- Before every step the waypoints are checked against a workspace box (`--workspace-min/max`,
+  set z above the table) and a maximum step of `--max-step` m per waypoint (incl. the current
+  TCP to the first waypoint). A violation stops auto mode.
+- Poses are in `world` (`--frame`), the root frame of the Sagres URDF that R2R2R rendered.
+  Gripper proprio is the *commanded* state, as R2R2R logs `gripper_binary_cmd`.
+- Observation history: with `seq_length` 1 the policy sees the frame taken after the arm
+  settled. With longer histories each executed waypoint adds one entry (the frame recorded
+  during the move where the arm was closest to it), matching tinydp's spacing of one action
+  step per history step.
+- `--ddim-steps 10` denoises in 10 DDIM steps instead of the full 100-step DDPM chain that
+  tinydp's wrapper runs; `--weights ema` uses the EMA weights.
+- `--fake` replaces the network by scripted 3 mm steps (no torch needed) to test the loop.
+
+`traj_replay` reads `robot_data/robot_data.h5` of an R2R2R episode (`ee_poses` as
+`[x y z qw qx qy qz]` left then right, `gripper_binary_cmd` with 1 = closed), subsamples it like
+the policy's actions (`--subsample 2`), goes to the episode's start pose (as above) and then replays it in
+Cartesian moves of `--steps-per-move` waypoints, with the same modes and checks.
+
 ## Real hardware
 
 ```bash
@@ -79,7 +151,10 @@ Velocities are capped at 2 rad/s in `config/joint_limits.yaml` and scaled by 0.2
 src/openarm_description   upstream, submodule (pinned)
 src/openarm_ros2          upstream, submodule: openarm_hardware (CAN ros2_control plugin), bringup
 src/openarm_can           upstream, submodule: CAN library used by openarm_hardware
-src/openarm_ee_control    this repo: launch, MoveIt/controller config, pose server, send_pose
+src/openarm_ee_control    this repo: launch, MoveIt/controller config, pose server, send_pose,
+                          step executor + traj_replay
+src/openarm_policy        this repo: R2R2R / tinydp policy node (pixi env `policy`)
+third_party/tinydp        upstream, submodule: diffusion policy model code (not built by colcon)
 ```
 
 ## Packages in the pixi env

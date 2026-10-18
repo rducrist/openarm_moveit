@@ -10,7 +10,7 @@ from dataclasses import dataclass
 
 from control_msgs.action import FollowJointTrajectory
 from geometry_msgs.msg import Pose, PoseStamped
-from moveit_msgs.msg import (BoundingVolume, Constraints, MotionPlanRequest,
+from moveit_msgs.msg import (BoundingVolume, Constraints, JointConstraint, MotionPlanRequest,
                              MoveItErrorCodes, OrientationConstraint, PositionConstraint,
                              RobotState)
 from moveit_msgs.srv import GetCartesianPath, GetMotionPlan
@@ -19,7 +19,9 @@ from rclpy.duration import Duration
 from rclpy.node import Node
 from rclpy.time import Time
 from shape_msgs.msg import SolidPrimitive
+from std_msgs.msg import Header
 from tf2_ros import Buffer, TransformListener
+from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 
 ERROR_NAMES = {v: k for k, v in MoveItErrorCodes.__dict__.items()
                if k.isupper() and isinstance(v, int)}
@@ -123,32 +125,23 @@ class ArmCommander:
         """Return (JointTrajectory | None, message)."""
         if not target.header.frame_id:
             target.header.frame_id = self.planning_frame
-        start = RobotState(is_diff=True)  # = current state from the planning scene monitor
-
         if opt.cartesian:
-            req = GetCartesianPath.Request()
-            req.header = target.header
-            req.start_state = start
-            req.group_name = self.arm.group
-            req.link_name = self.arm.ee_link
-            req.waypoints = [target.pose]
-            req.max_step = opt.cartesian_step
-            req.avoid_collisions = True
-            req.max_velocity_scaling_factor = opt.velocity_scaling
-            req.max_acceleration_scaling_factor = opt.acceleration_scaling
-            res = _wait(self.cart_srv.call_async(req), 30.0)
-            if res is None:
-                return None, "compute_cartesian_path timed out"
-            if res.error_code.val != MoveItErrorCodes.SUCCESS:
-                return None, f"cartesian: {ERROR_NAMES.get(res.error_code.val, res.error_code.val)}"
-            if res.fraction < opt.cartesian_min_fraction:
-                return None, f"cartesian path only {res.fraction:.0%} feasible"
-            return res.solution.joint_trajectory, f"cartesian ({res.fraction:.0%})"
+            return self.plan_path(target.header, [target.pose], opt)
+        return self._motion_plan(self._pose_constraints(target, opt), opt)
 
+    def plan_joints(self, names: list[str], positions: list[float], opt: PlanOptions):
+        """Free-space (OMPL) plan to joint positions of this arm's group."""
+        goal = Constraints(name="joints", joint_constraints=[
+            JointConstraint(joint_name=n, position=float(p), tolerance_above=1e-3,
+                            tolerance_below=1e-3, weight=1.0)
+            for n, p in zip(names, positions)])
+        return self._motion_plan(goal, opt)
+
+    def _motion_plan(self, goal: Constraints, opt: PlanOptions):
         mpr = MotionPlanRequest()
         mpr.group_name = self.arm.group
-        mpr.start_state = start
-        mpr.goal_constraints = [self._pose_constraints(target, opt)]
+        mpr.start_state = RobotState(is_diff=True)  # = current state from the planning scene monitor
+        mpr.goal_constraints = [goal]
         mpr.pipeline_id = opt.planner_pipeline
         mpr.planner_id = opt.planner_id
         mpr.num_planning_attempts = opt.attempts
@@ -163,6 +156,33 @@ class ArmCommander:
         if r.error_code.val != MoveItErrorCodes.SUCCESS:
             return None, f"plan: {ERROR_NAMES.get(r.error_code.val, r.error_code.val)}"
         return r.trajectory.joint_trajectory, f"planned in {r.planning_time:.2f}s"
+
+    def plan_path(self, header: Header, poses: list[Pose], opt: PlanOptions):
+        """Straight-line Cartesian path from the current state through all `poses`.
+
+        IK is seeded from the current joint state and each previous waypoint, so the arm
+        stays in its current configuration branch. Returns (JointTrajectory | None, message).
+        """
+        if not header.frame_id:
+            header.frame_id = self.planning_frame
+        req = GetCartesianPath.Request()
+        req.header = header
+        req.start_state = RobotState(is_diff=True)
+        req.group_name = self.arm.group
+        req.link_name = self.arm.ee_link
+        req.waypoints = list(poses)
+        req.max_step = opt.cartesian_step
+        req.avoid_collisions = True
+        req.max_velocity_scaling_factor = opt.velocity_scaling
+        req.max_acceleration_scaling_factor = opt.acceleration_scaling
+        res = _wait(self.cart_srv.call_async(req), 30.0)
+        if res is None:
+            return None, "compute_cartesian_path timed out"
+        if res.error_code.val != MoveItErrorCodes.SUCCESS:
+            return None, f"cartesian: {ERROR_NAMES.get(res.error_code.val, res.error_code.val)}"
+        if res.fraction < opt.cartesian_min_fraction:
+            return None, f"cartesian path only {res.fraction:.0%} feasible"
+        return res.solution.joint_trajectory, f"cartesian ({res.fraction:.0%})"
 
     # ---------------------------------------------------------------- execution
     def execute(self, traj, wait: bool = True, timeout: float = 120.0) -> Result:
@@ -199,3 +219,30 @@ class ArmCommander:
             return Result(False, msg)
         res = self.execute(traj, wait=wait)
         return Result(res.ok, f"{msg}; {res.message}")
+
+
+class GripperCommander:
+    """Moves one gripper (a JointTrajectoryController on the finger joint) to a position."""
+
+    def __init__(self, node: Node, controller: str, joint: str):
+        self.joint = joint
+        self.fjt = ActionClient(node, FollowJointTrajectory,
+                                f"/{controller}/follow_joint_trajectory")
+
+    def move(self, position: float, duration: float = 1.0, timeout: float = 10.0) -> Result:
+        if not self.fjt.wait_for_server(timeout):
+            return Result(False, "gripper controller not available")
+        point = JointTrajectoryPoint(positions=[position],
+                                     time_from_start=Duration(seconds=duration).to_msg())
+        traj = JointTrajectory(joint_names=[self.joint], points=[point])
+        goal = FollowJointTrajectory.Goal(trajectory=traj)
+        gh = _wait(self.fjt.send_goal_async(goal), timeout)
+        if gh is None or not gh.accepted:
+            return Result(False, "gripper controller rejected the goal")
+        res = _wait(gh.get_result_async(), duration + timeout)
+        if res is None:
+            return Result(False, "gripper timed out")
+        code = res.result.error_code
+        if code == FollowJointTrajectory.Result.SUCCESSFUL:
+            return Result(True, f"gripper at {position:.3f}")
+        return Result(False, f"gripper controller error {code}: {res.result.error_string}")

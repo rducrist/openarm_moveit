@@ -24,6 +24,7 @@ setup(
             "ee_pose_server = openarm_ee_control.ee_pose_server:main",
             "send_pose = openarm_ee_control.send_pose:main",
             "gravity_comp = openarm_ee_control.gravity_comp:main",
+            "traj_replay = openarm_ee_control.traj_replay:main",
         ],
     },
 )

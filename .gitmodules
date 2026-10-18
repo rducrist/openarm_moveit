@@ -7,3 +7,6 @@
 [submodule "src/openarm_can"]
 	path = src/openarm_can
 	url = https://github.com/enactic/openarm_can.git
+[submodule "third_party/tinydp"]
+	path = third_party/tinydp
+	url = https://github.com/Max-Fu/tinydp.git

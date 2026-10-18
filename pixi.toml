@@ -50,6 +50,8 @@ make = "*"
 compilers = "*"
 cli11 = "*"
 setuptools = "<80"
+# traj_replay reads R2R2R robot_data.h5
+h5py = "*"
 
 [tasks]
 build = { cmd = "colcon build --symlink-install --merge-install --cmake-args -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF", description = "Build the colcon workspace in src/" }
@@ -65,3 +67,24 @@ can-up = { cmd = "bash scripts/can_up.sh", description = "Configure can0/can1 fo
 # Example: send an end-effector pose goal.
 send-pose = { cmd = "ros2 run openarm_ee_control send_pose", description = "Send an EE pose goal, e.g. pixi run send-pose -- --arm right --xyz 0.3 -0.2 0.3" }
 smoke = { cmd = "bash scripts/smoke_test.sh", depends-on = ["build"], description = "Headless bringup + pose goals on both arms" }
+# Replay an R2R2R episode step by step (needs a running bringup), e.g.
+#   pixi run replay -- <episode dir> --mode dry
+replay = { cmd = "ros2 run openarm_ee_control traj_replay", description = "Replay an R2R2R episode through ee_pose_server" }
+
+# Policy deployment environment: the ROS stack above plus torch and tinydp (third_party/tinydp,
+# put on PYTHONPATH by scripts/activate.sh). Versions follow tinydp's pyproject.
+[feature.policy.pypi-dependencies]
+torch = { version = "==2.5.1", index = "https://download.pytorch.org/whl/cu124" }
+torchvision = { version = "==0.20.1", index = "https://download.pytorch.org/whl/cu124" }
+diffusers = "==0.18.2"
+huggingface-hub = "<0.26"  # diffusers 0.18 imports cached_download (removed in 0.26)
+timm = "==1.0.11"
+tyro = ">=0.8"
+
+[feature.policy.tasks]
+# pixi run -e policy policy -- --ckpt-dir <folder with run.yaml> --image-topic <topic> --mode dry
+policy = { cmd = "ros2 run openarm_policy policy_node", description = "Run the R2R2R diffusion policy step by step" }
+
+[environments]
+default = { solve-group = "default" }
+policy = { features = ["policy"], solve-group = "default" }
