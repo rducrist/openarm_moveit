@@ -17,7 +17,8 @@ LOG=$(mktemp -t openarm_smoke.XXXX.log)
 echo "launching $LAUNCH (log: $LOG)"
 # Own process group: background jobs of a non-interactive shell ignore SIGINT, so stop the
 # whole launch tree with SIGTERM instead.
-setsid ros2 launch openarm_ee_control "$LAUNCH" rviz:=false use_fake_hardware:=true >"$LOG" 2>&1 &
+# table:=false: the test moves (TCP at x 0.2, z 0.85) go through the table box.
+setsid ros2 launch openarm_ee_control "$LAUNCH" rviz:=false use_fake_hardware:=true table:=false >"$LOG" 2>&1 &
 LAUNCH_PID=$!
 cleanup() {
   kill -TERM -- "-$LAUNCH_PID" 2>/dev/null

@@ -6,6 +6,7 @@ Starts:
   * move_group (OMPL + Pilz) and RViz with the MotionPlanning panel
   * ee_pose_server: PoseStamped topics -> MoveIt plans -> execution
   * gravity_comp (gravity_comp:=true): URDF gravity torque as motor feedforward
+  * table_collision (table:=true): the table as a collision box in the planning scene
 
 Robot model:
   * default: upstream openarm_description v2.0 (or v1.0 with arm_type:=v1.0)
@@ -204,6 +205,19 @@ def launch_setup(ctx):
             output="screen",
             parameters=[{"scale": float(LaunchConfiguration("gravity_comp_scale").perform(ctx))}],
         ))
+    if LaunchConfiguration("table").perform(ctx).lower() == "true":
+        num = lambda n: float(LaunchConfiguration(n).perform(ctx))  # noqa: E731
+        nodes.append(Node(  # one-shot: adds the box once move_group is up, then exits
+            package=PKG,
+            executable="table_collision",
+            output="screen",
+            parameters=[{
+                "frame": LaunchConfiguration("planning_frame").perform(ctx),
+                "x_min": num("table_x_min"), "x_max": num("table_x_max"),
+                "y_min": num("table_y_min"), "y_max": num("table_y_max"),
+                "z_min": 0.0, "z_max": num("table_top_z"),
+            }],
+        ))
     return nodes + [TimerAction(period=1.0, actions=controllers)]
 
 
@@ -232,5 +246,14 @@ def generate_launch_description():
                               description="Link right pose goals refer to. Empty = TCP of arm_type."),
         DeclareLaunchArgument("planning_frame", default_value="world",
                               description="Frame assumed when a pose has no frame_id."),
+        DeclareLaunchArgument("table", default_value="false",
+                              description="Add the table as a collision box (floor to table_top_z)."),
+        DeclareLaunchArgument("table_x_min", default_value="0.18",
+                              description="Table edge towards the robot [m, planning_frame]."),
+        DeclareLaunchArgument("table_x_max", default_value="0.765"),
+        DeclareLaunchArgument("table_y_min", default_value="-0.306"),
+        DeclareLaunchArgument("table_y_max", default_value="0.292"),
+        DeclareLaunchArgument("table_top_z", default_value="1.09",
+                              description="Height of the table top [m]."),
     ]
     return LaunchDescription(args + [OpaqueFunction(function=launch_setup)])

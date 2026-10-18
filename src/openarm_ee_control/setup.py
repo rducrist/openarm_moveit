@@ -25,6 +25,7 @@ setup(
             "send_pose = openarm_ee_control.send_pose:main",
             "gravity_comp = openarm_ee_control.gravity_comp:main",
             "traj_replay = openarm_ee_control.traj_replay:main",
+            "table_collision = openarm_ee_control.table_collision:main",
         ],
     },
 )

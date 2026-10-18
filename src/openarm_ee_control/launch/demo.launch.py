@@ -31,6 +31,13 @@ DEFAULTS = {
     "left_ee_link": "",
     "right_ee_link": "",
     "planning_frame": "world",
+    # table collision box: the cup_table sim table, edge towards the robot at x = 0.18 m
+    "table": "true",
+    "table_x_min": "0.18",
+    "table_x_max": "0.765",
+    "table_y_min": "-0.306",
+    "table_y_max": "0.292",
+    "table_top_z": "1.09",
 }
 
 

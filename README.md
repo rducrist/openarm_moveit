@@ -62,6 +62,20 @@ More topics, used by the replay tool and the policy node:
 | `/openarm/{left,right}/stop` | `std_msgs/Empty` (in) | cancel the running motion |
 | `/openarm/{left,right}/gripper_status` | `std_msgs/String` (out) | `executing`, `succeeded`, `failed: ...` |
 
+### Table collision box
+
+`demo.launch.py` adds the table to MoveIt's planning scene (`table_collision`, `table:=true`):
+a box from the floor up to `table_top_z`, x `table_x_min`..`table_x_max`, y
+`table_y_min`..`table_y_max` (world frame). Defaults: the cup_table sim table (top 1.09 m,
+x 0.18..0.765, y -0.306..0.292). Every motion of `ee_pose_server` is planned by MoveIt with
+collision checking (OMPL goals, start pose, Cartesian policy/replay steps), so no arm link
+or finger is planned into it; such moves fail with e.g. `cartesian path only 64% feasible`.
+With the gripper pointing down that stops the TCP ~3 cm above the top. Measure the real
+table and pass its numbers, e.g. `demo.launch.py table_top_z:=1.075 table_x_max:=0.80`;
+change it while running with
+`ros2 run openarm_ee_control table_collision --ros-args -p z_max:=1.075` (`-p remove:=true`
+removes it). `bringup.launch.py` defaults to `table:=false`; the smoke test runs without it.
+
 ## Running an R2R2R diffusion policy
 
 `openarm_policy` runs a [tinydp](https://github.com/Max-Fu/tinydp) diffusion policy trained on
