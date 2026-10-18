@@ -9,11 +9,11 @@ tinydp.policy.model is imported (third_party/tinydp must be on PYTHONPATH; the p
 environment sets that up).
 
 Model I/O (tinydp, R2R2R sim data):
-  images   (T, S, S, 3) uint8 RGB, T = seq_length (oldest first), S = image_size; resized
-           like training (PIL bilinear) before they get here
+  images   (T, S, S, 3) uint8 RGB, T = seq_length (oldest first), S = image_size; preprocess()
+           stretches camera frames like training (PIL bilinear)
   proprio  (T, 20) [L xyz, L rot6d, L grip, R xyz, R rot6d, R grip], unnormalised
-  output   (num_pred_steps, 20) absolute TCP poses + gripper, same layout. For a single-arm
-           policy the other arm is filled with its newest proprio (as the wrapper does).
+  output   (num_pred_steps, 20) absolute TCP poses + gripper, same layout; predict() returns
+           {arm: (poses (H, 4, 4), gripper (H,))} for the policy's arm(s)
 """
 
 import glob
@@ -25,8 +25,13 @@ from types import SimpleNamespace
 import numpy as np
 import yaml
 
+from openarm_ee_control.geometry import poses_from_vec10, vec10_from_pose
+from openarm_policy.observation import resize_like_training
+
 IMAGENET_MEAN = (0.485, 0.456, 0.406)
 IMAGENET_STD = (0.229, 0.224, 0.225)
+SIDES = ("left", "right")
+COLS = {"left": slice(0, 10), "right": slice(10, 20)}
 
 
 class _RunYamlLoader(yaml.SafeLoader):
@@ -126,7 +131,30 @@ class TinyDPPolicy:
                 f"{self.num_cameras} camera(s) at {self.image_size}px, "
                 f"{len(self.scheduler.timesteps)} denoising steps on {self.device}")
 
-    def predict(self, images: np.ndarray, proprio: np.ndarray) -> np.ndarray:
+    # ------------------------------------------------------------ node interface
+    frame_dt = None      # history / action step [s]: not in tinydp checkpoints
+    action_dt = None
+    raw_size = None      # any camera resolution; frames are stretched to image_size
+    calibration = None
+    start_pose = None
+
+    def preprocess(self, rgb: np.ndarray) -> np.ndarray:
+        return resize_like_training(rgb, self.image_size)
+
+    def train_box(self, side: str):
+        """(min, max) TCP position of `side` in the training actions."""
+        c = COLS[side]
+        return self.action_min[c][:3], self.action_max[c][:3]
+
+    def predict(self, observations: list) -> dict:
+        """observations: obs_horizon Observations, oldest first -> {arm: (poses, gripper)}."""
+        images = np.stack([o.image for o in observations])
+        proprio = np.stack([np.concatenate([vec10_from_pose(o.tcp[s], o.gripper[s]) for s in SIDES])
+                            for o in observations]).astype(np.float32)
+        out = self.predict_raw(images, proprio)
+        return {s: poses_from_vec10(out[:, COLS[s]]) for s in self.arms}
+
+    def predict_raw(self, images: np.ndarray, proprio: np.ndarray) -> np.ndarray:
         import torch
         T, S = self.obs_horizon, self.image_size
         assert images.shape == (T, S, S, 3), images.shape

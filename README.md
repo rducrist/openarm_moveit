@@ -78,28 +78,44 @@ pixi install -e policy                           # torch 2.5.1 (CUDA 12.4), diff
 
 # terminal 1: robot
 ros2 launch openarm_ee_control demo.launch.py use_fake_hardware:=false
-# terminal 2: camera driver publishing sensor_msgs/Image (rgb8/bgr8), same pose and aspect
-#             ratio as the camera the policy was rendered with, e.g. `pixi run camera`
-#             (/camera/image_raw)
+# terminal 2: head camera, raw 1920x1080 (the policy undistorts and crops itself)
+ros2 launch openarm_camera camera.launch.py calibration_file:=$PWD/calib/head_cam.npz
 # terminal 3: replay a generated episode first (checks frame, TCP, gripper)
 pixi run replay -- <output_data/.../successes/env_X> --mode dry   # shows it in RViz only
 pixi run replay -- <output_data/.../successes/env_X> --arms right  # Enter per move
 # store the sim's start pose next to the checkpoint (once; no robot needed)
 pixi run replay -- <output_data/.../successes/env_X> --save-start <folder>/start_pose.yaml
 # then the policy
-pixi run -e policy policy -- --ckpt-dir <folder> --image-topic <topic> --mode dry
-pixi run -e policy policy -- --ckpt-dir <folder> --image-topic <topic>             # step mode
+P=policies/2026-10-18_openarm_left_v2
+pixi run -e policy policy -- --policy $P --image-topic /camera/image_raw/compressed --mode dry
+pixi run -e policy policy -- --policy $P --image-topic /camera/image_raw/compressed  # step mode
 ```
 
-The checkpoint folder holds `run.yaml`, `action_statistics.json`, `checkpoint_<N>.pt` and,
-optionally, `start_pose.yaml`. Everything else is read from `run.yaml`: which arm(s) the policy
-drives, history length, chunk length, image size.
+`--policy` takes either of two formats:
+
+- **Policy bundle** (`openarm_cup_policy/1`, in `policies/<name>/`): the `.pt` (gitignored)
+  with weights, training config, action statistics, camera calibration and home pose, next
+  to its loader `openarm_policy.py` + `tinydp_vision.py` and a `.json` with the same
+  metadata. The node uses the bundle's own loader, so the image path is the training one:
+  raw 1920x1080 frame → undistort (bundled calibration = `calib/head_cam.npz`) → crop
+  (300, 0, 1280, 1080) → policy crop (320, 360, 960, 720) → 320x320, ImageNet normalisation.
+  The undistortion maps are computed once (bit-identical to the loader's `cv2.undistort`,
+  ~25 ms instead of up to 1 s per frame). Timing (observations and actions 1/15 s apart),
+  history length, chunk length and the home pose come from the bundle.
+- **tinydp checkpoint folder**: `run.yaml`, `action_statistics.json`, `checkpoint_<N>.pt`.
+
+At start-up the node checks that the camera delivers the policy's raw resolution and, if
+`camera_info` is published, that its K / distortion equal the policy's calibration. What the
+camera must match, beyond that, is the **pose** the sim rendered from (`dataset_info.camera`
+in the bundle's json; training randomised it by only ±1 cm / ±1°): keep the camera node at
+1920x1080 with autofocus off, and don't move the camera.
 
 - Start pose: the posture the sim episodes start from, i.e. the joint angles of an episode's
   first frame (`joint_angles` + `joint_names.txt`), reached with an OMPL joint goal, one arm
   after the other. Joint angles reproduce the sim's arm posture (elbow) in the images; a TCP
   pose alone would not on a 7-DoF arm, so `tcp` is only the fallback for episodes without
-  joint data. Taken from `--start` (YAML or episode) or `<ckpt-dir>/start_pose.yaml`. After
+  joint data. Taken from `--start` (YAML or episode), `<policy dir>/start_pose.yaml`, or the
+  bundle's home joints. After
   reaching it, the node warns if the policy arm's TCP is outside the positions in the
   training data (`action_statistics.json`). `h` at any prompt goes back to it for a new
   episode; an episode also ends after `--max-steps`.
@@ -116,8 +132,11 @@ drives, history length, chunk length, image size.
   settled. With longer histories each executed waypoint adds one entry (the frame recorded
   during the move where the arm was closest to it), matching tinydp's spacing of one action
   step per history step.
-- `--ddim-steps 10` denoises in 10 DDIM steps instead of the full 100-step DDPM chain that
-  tinydp's wrapper runs; `--weights ema` uses the EMA weights.
+- Denoising: bundles default to 10 DDIM steps (~0.6 s on the Quadro P2000), tinydp folders
+  to the full 100-step DDPM chain their wrapper runs (~3.4 s); `--ddim-steps N` overrides
+  (0 = DDPM). `--weights ema` uses tinydp's EMA weights.
+- `--image-topic` can be the compressed topic (`.../compressed`): the node decodes the JPEGs
+  itself, so openarm_camera does not decode frames for it.
 - `--fake` replaces the network by scripted 3 mm steps (no torch needed) to test the loop.
 
 `traj_replay` reads `robot_data/robot_data.h5` of an R2R2R episode (`ee_poses` as

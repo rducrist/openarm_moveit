@@ -8,3 +8,7 @@ __pycache__/
 /calib_handeye*/
 /calib_intrinsics*/
 /calib/*_debug/
+# policy weights (hundreds of MB; the small json/README/loader files next to them are tracked)
+/policies/*/*.pt
+# downloaded policy archives
+/*.zip

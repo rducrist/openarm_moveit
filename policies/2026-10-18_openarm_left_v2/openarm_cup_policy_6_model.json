@@ -1,0 +1,468 @@
+{
+  "format": "openarm_cup_policy/1",
+  "weights": "model",
+  "vision_arch": {
+    "backbone": "resnet18_spatial_softmax",
+    "pretrained": true,
+    "image_crop": [
+      320,
+      360,
+      960,
+      720
+    ]
+  },
+  "action_statistics": {
+    "shape": [
+      20
+    ],
+    "min_action": [
+      0.27800512313842773,
+      -0.09698820114135742,
+      1.0850456953048706,
+      -0.3644058329884209,
+      -0.9183222909224149,
+      0.38381840260991734,
+      -0.2280982175564949,
+      -0.9999999995866065,
+      -0.9026145383565911,
+      0.0,
+      -0.01908564567565918,
+      -0.18086481094360352,
+      0.7029992938041687,
+      0.9977243024880402,
+      -0.0030122494911302413,
+      -0.030250438710573996,
+      -0.00297408260052711,
+      -0.9999999999999625,
+      -0.045281688281267385,
+      0.0
+    ],
+    "max_action": [
+      0.5832960605621338,
+      0.3053966760635376,
+      1.3194854259490967,
+      0.22956376665838454,
+      0.5852282264591675,
+      0.9999999819161006,
+      0.34994463932506453,
+      -0.39534738036706096,
+      0.5844739563687458,
+      1.0,
+      0.0358126163482666,
+      -0.12565898895263672,
+      0.7041927576065063,
+      0.9999999999999649,
+      0.025356832425667476,
+      0.06296227992557739,
+      0.025406940192454937,
+      -0.9989564733932892,
+      0.04297330401848565,
+      0.0
+    ]
+  },
+  "dataset_info": {
+    "task": "openarm_cup_table: cup anywhere on the table -> onto the taped cross, left arm, handle grasp",
+    "active_arm": "left",
+    "track": "track_cup_left",
+    "track_sha256": "688438c71204d4afdff0308b8711cf361579939d03834423e26f1cc2ed713ad0",
+    "demo_window_frames": [
+      0,
+      260
+    ],
+    "demo_fps": 30,
+    "speed": 1.0,
+    "sim_hz": 60,
+    "log_hz": 15,
+    "phases_s": {
+      "approach": 3.0,
+      "approach_joint_space_frac": 0.5,
+      "approach_lift_m": 0.12,
+      "approach_cartesian_blend": 0.6,
+      "carry": 8.666666666666666,
+      "release": 1.0
+    },
+    "max_joint_speed_rad_s": 1.2,
+    "robot": {
+      "urdf": "real2render2real/isaaclab_viser/configs/articulation_configs/../../../../data/openarm/openarm_v10_bimanual.urdf",
+      "urdf_sha256": "a51ca225b45bc6553a27503b8139598a942fa1795f9390b3ada07b5be088271c",
+      "base_frame": "URDF world (floor; openarm_body_link0 at z 0.628 m)",
+      "tcp_bodies": [
+        "openarm_left_hand_tcp",
+        "openarm_right_hand_tcp"
+      ],
+      "home_joints": {
+        "openarm_left_joint1": 0.019999999552965164,
+        "openarm_left_joint2": -0.42800000309944153,
+        "openarm_left_joint3": 0.10700000077486038,
+        "openarm_left_joint4": 2.196000099182129,
+        "openarm_left_joint5": -0.46700000762939453,
+        "openarm_left_joint6": 0.07999999821186066,
+        "openarm_left_joint7": 0.546999990940094,
+        "openarm_right_joint1": 0.0,
+        "openarm_right_joint2": 0.0,
+        "openarm_right_joint3": 0.0,
+        "openarm_right_joint4": 0.0,
+        "openarm_right_joint5": 0.0,
+        "openarm_right_joint6": 0.0,
+        "openarm_right_joint7": 0.0,
+        "openarm_left_finger_joint1": 0.04399999976158142,
+        "openarm_right_finger_joint1": 0.04399999976158142
+      },
+      "ik_seed_active_arm": [
+        0.0,
+        -0.3,
+        0.0,
+        1.2,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "logged_joint_names": [
+        "openarm_left_joint1",
+        "openarm_left_joint2",
+        "openarm_left_joint3",
+        "openarm_left_joint4",
+        "openarm_left_joint5",
+        "openarm_left_joint6",
+        "openarm_left_joint7",
+        "openarm_right_joint1",
+        "openarm_right_joint2",
+        "openarm_right_joint3",
+        "openarm_right_joint4",
+        "openarm_right_joint5",
+        "openarm_right_joint6",
+        "openarm_right_joint7",
+        "openarm_left_finger_joint1",
+        "openarm_right_finger_joint1"
+      ]
+    },
+    "camera": {
+      "name": "camera_0 = robot camera",
+      "width": 1280,
+      "height": 1080,
+      "K": [
+        [
+          1049.3380473287589,
+          0.0,
+          640.007596965545
+        ],
+        [
+          0.0,
+          1057.4039759615705,
+          539.7044711066573
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "model": "pinhole (real frames: undistort with the same K)",
+      "pose_in_robot": {
+        "xyz": [
+          0.08,
+          0.0,
+          1.6025251843870718
+        ],
+        "wxyz_opencv": [
+          0.13136280792078758,
+          0.6713199583958934,
+          0.7190493622069218,
+          0.12264314438369987
+        ]
+      },
+      "pose_noise": {
+        "xyz_m": 0.01,
+        "rot_rad": 0.017453292519943295
+      }
+    },
+    "robot_data": {
+      "ee_poses": "left TCP xyz + wxyz, right TCP xyz + wxyz, robot base frame [m]",
+      "gripper_binary_cmd": "[left, right], 1 = closed",
+      "joint_angles": "logged_joint_names order"
+    },
+    "table": {
+      "top_z": 1.09,
+      "centre": [
+        0.4661352829575516,
+        -0.006708734778961611,
+        1.09
+      ],
+      "radius": 0.29893646895371434
+    },
+    "scene_offset": {
+      "what": "table + cup + camera relative to the robot, one per reset",
+      "xy_m": 0.06,
+      "z_m": 0.02,
+      "yaw_rad": 0.08726646259971647
+    },
+    "camera_calibration": {
+      "w": 1280,
+      "h": 1080,
+      "k": [
+        [
+          1049.3380473287589,
+          0.0,
+          640.007596965545
+        ],
+        [
+          0.0,
+          1057.4039759615705,
+          539.7044711066573
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "dist": [
+        -0.37277331976609496,
+        0.23172841064516309,
+        -0.0007013807814648514,
+        -0.0026482408310148924,
+        -0.07635050932967874
+      ],
+      "hfov_deg": 62.758724661092266,
+      "vfov_deg": 54.10540872127497,
+      "source": {
+        "w": 1920,
+        "h": 1080,
+        "k": [
+          [
+            1049.3380473287589,
+            0.0,
+            940.007596965545
+          ],
+          [
+            0.0,
+            1057.4039759615705,
+            539.7044711066573
+          ],
+          [
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "crop_xywh": [
+          300,
+          0,
+          1280,
+          1080
+        ],
+        "calibration": "calibration branch ecc60c7 calib/head_cam.npz",
+        "rms_px": 0.345746120927495,
+        "std_intrinsics": [
+          36.16814360140442,
+          36.39926865290644,
+          22.037881002028673,
+          21.488907284368214,
+          0.033680678192544417,
+          0.06411196364466003,
+          0.003946767550993431,
+          0.003901096709715134,
+          0.037702513615147794
+        ],
+        "processing": "cv2.undistort(frame, source.k, dist, None, source.k), then frame[y0:y0+h, x0:x0+w]"
+      }
+    },
+    "cup_starts": {
+      "radius_m": [
+        0.0,
+        0.12
+      ],
+      "yaw_rad": 0.7853981633974483,
+      "margin_m": 0.05,
+      "in_view_margin_px": 60
+    },
+    "cup_turn_rad": 3.141592653589793,
+    "cup_track_cleaned": true,
+    "cup_placement": {
+      "what": "the real cup's start for the policy to be in distribution (nominal scene, robot base frame)",
+      "upright": true,
+      "centre_xy_m": [
+        0.541,
+        0.076
+      ],
+      "centre_from_table_centre_xy_m": [
+        0.075,
+        0.082
+      ],
+      "within_m": 0.12,
+      "handle_direction_deg": 173.9,
+      "handle_direction_note": "angle of the handle from the cup's axis about robot z, from +x (away from the robot); 180 = towards the robot",
+      "handle_within_deg": 45.0
+    },
+    "grasps": [
+      {
+        "index": 10,
+        "flip": 1,
+        "position": [
+          0.035204723219527743,
+          0.007189108860502058,
+          -0.00866089490698041
+        ],
+        "orientation": [
+          0.7044160264027587,
+          0.061628416716219325,
+          -0.7044160264027588,
+          0.0616284167162191
+        ],
+        "width": 0.004621340604891175
+      }
+    ],
+    "randomisation": [
+      "lights (~1/4 upstream intensity)",
+      "dome 50-600",
+      "cylinder lights 100-1500",
+      "clutter below 0.9 m",
+      "camera pose",
+      "table pose (small)",
+      "cup start (xy, yaw)",
+      "lights",
+      "skybox",
+      "floor/pedestal/cup colours",
+      "dome light",
+      "6 clutter shapes",
+      "grasp rotation noise"
+    ],
+    "provenance": {
+      "git_commit": "d4bcc41d7cf62f5020e3653883ec6117552c660b",
+      "git_dirty": false,
+      "created": "2026-10-18 04:21:46"
+    }
+  },
+  "calibration": {
+    "w": 1280,
+    "h": 1080,
+    "k": [
+      [
+        1049.3380473287589,
+        0.0,
+        640.007596965545
+      ],
+      [
+        0.0,
+        1057.4039759615705,
+        539.7044711066573
+      ],
+      [
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "dist": [
+      -0.37277331976609496,
+      0.23172841064516309,
+      -0.0007013807814648514,
+      -0.0026482408310148924,
+      -0.07635050932967874
+    ],
+    "hfov_deg": 62.758724661092266,
+    "vfov_deg": 54.10540872127497,
+    "source": {
+      "w": 1920,
+      "h": 1080,
+      "k": [
+        [
+          1049.3380473287589,
+          0.0,
+          940.007596965545
+        ],
+        [
+          0.0,
+          1057.4039759615705,
+          539.7044711066573
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "crop_xywh": [
+        300,
+        0,
+        1280,
+        1080
+      ],
+      "calibration": "calibration branch ecc60c7 calib/head_cam.npz",
+      "rms_px": 0.345746120927495,
+      "std_intrinsics": [
+        36.16814360140442,
+        36.39926865290644,
+        22.037881002028673,
+        21.488907284368214,
+        0.033680678192544417,
+        0.06411196364466003,
+        0.003946767550993431,
+        0.003901096709715134,
+        0.037702513615147794
+      ],
+      "processing": "cv2.undistort(frame, source.k, dist, None, source.k), then frame[y0:y0+h, x0:x0+w]"
+    }
+  },
+  "interface": {
+    "observation": {
+      "horizon": 4,
+      "frame_dt_s": 0.06666666666666667,
+      "image": {
+        "camera": "robot camera, raw BGR as captured",
+        "raw_size": [
+          1920,
+          1080
+        ],
+        "crop_xywh": [
+          300,
+          0,
+          1280,
+          1080
+        ],
+        "size": [
+          1280,
+          1080
+        ],
+        "undistort": "cv2.undistort(raw, K_raw, dist, None, K_raw), then the crop (bundled calibration)",
+        "model_input": [
+          3,
+          320,
+          320
+        ],
+        "policy_crop_xywh": [
+          320,
+          360,
+          960,
+          720
+        ],
+        "transform": "RGB, policy_crop_xywh (if set), resize to model_input (aspect squashed), ToTensor, ImageNet normalisation (tinydp default_vision_transform)"
+      },
+      "proprio": {
+        "dim": 20,
+        "layout": "[left: tcp xyz (3), rot6d (6), gripper (1), right: same]",
+        "frame": "URDF world (floor; openarm_body_link0 at z 0.628 m); TCP = openarm_left_hand_tcp, openarm_right_hand_tcp",
+        "rot6d": "tinydp quat_to_rot_6d(quat wxyz)",
+        "gripper": "last command, 1 = closed"
+      }
+    },
+    "action": {
+      "horizon": 16,
+      "step_dt_s": 0.06666666666666667,
+      "first_step": "one step after the newest observation",
+      "chunked": true,
+      "arm": "left",
+      "per_step": "the arm's TCP xyz [m] + quaternion wxyz (robot base frame) + gripper (> 0.5 = close); other arm held",
+      "delta_actions": false
+    }
+  },
+  "provenance": {
+    "git_commit": "2fc0cfa408edd5839acd505ec1d4dedd91243fba",
+    "git_dirty": false,
+    "run_dir": "runs/policy/openarm_cup_left_v2",
+    "checkpoint": "checkpoint_6.pt",
+    "epoch": 6,
+    "training_rollouts": 321,
+    "exported": "2026-10-18 08:37:28"
+  }
+}

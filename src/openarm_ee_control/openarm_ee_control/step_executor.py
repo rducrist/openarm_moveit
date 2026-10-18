@@ -129,9 +129,10 @@ class StepExecutor:
         return "not available: " + ", ".join(missing)
 
     def ee_pose(self, side: str, stamp: Time | None = None, timeout: float = 0.5) -> np.ndarray:
-        """TCP pose of one arm in `frame` (4x4), at `stamp` if given (falls back to latest)."""
+        """TCP pose of one arm in `frame` (4x4), at `stamp` if given (falls back to latest,
+        also right away for stamps more than 2 s from now: replayed or mis-clocked images)."""
         link = self.ee_links[side]
-        if stamp is not None:
+        if stamp is not None and abs((self.node.get_clock().now() - stamp).nanoseconds) < 2e9:
             try:
                 t = self.tf.lookup_transform(self.frame, link, stamp,
                                              timeout=Duration(seconds=timeout))
