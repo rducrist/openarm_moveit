@@ -4,3 +4,7 @@ log/
 .pixi/
 __pycache__/
 *.pyc
+# calibration recordings (rosbags) and debug images
+/calib_handeye*/
+/calib_intrinsics*/
+/calib/*_debug/

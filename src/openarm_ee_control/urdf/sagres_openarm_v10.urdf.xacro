@@ -19,7 +19,8 @@ with two changes, reproducing the setup from SagresOverdose branch `urdf` (ros2w
     them but drops them); default z = 0.628 m puts the shoulder mounts at 0.628 + 0.697 = 1.325 m
   * motor gains from openarm_ee_control/config/control_gains_v10.yaml (control_gains_file arg)
   * camera_link, fixed to world at the pose used by ros2ws/.../robot_bringup.launch.py
-    (disable with camera:=false if a separate static TF publishes it)
+    (disable with camera:=false if a separate static TF publishes it), and its child
+    camera_optical_frame; scripts/calibrate_handeye.py prints the calibrated camera_xyz/rpy
 -->
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="openarm">
 
@@ -109,6 +110,14 @@ with two changes, reproducing the setup from SagresOverdose branch `urdf` (ros2w
       <parent link="world" />
       <child link="camera_link" />
       <origin xyz="$(arg camera_xyz)" rpy="$(arg camera_rpy)" />
+    </joint>
+    <!-- REP 103: camera_link x forward, z up; the optical frame (z forward, x right, y down)
+         is the frame_id of the openarm_camera images -->
+    <link name="camera_optical_frame" />
+    <joint name="camera_link_to_optical" type="fixed">
+      <parent link="camera_link" />
+      <child link="camera_optical_frame" />
+      <origin xyz="0 0 0" rpy="${-pi/2} 0 ${-pi/2}" />
     </joint>
   </xacro:if>
 

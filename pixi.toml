@@ -52,6 +52,9 @@ cli11 = "*"
 setuptools = "<80"
 # traj_replay reads R2R2R robot_data.h5
 h5py = "*"
+# openarm_camera, scripts/calibrate_*.py
+py-opencv = "*"
+scipy = "*"
 
 [tasks]
 build = { cmd = "colcon build --symlink-install --merge-install --cmake-args -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF", description = "Build the colcon workspace in src/" }
@@ -67,6 +70,14 @@ can-up = { cmd = "bash scripts/can_up.sh", description = "Configure can0/can1 fo
 # Example: send an end-effector pose goal.
 send-pose = { cmd = "ros2 run openarm_ee_control send_pose", description = "Send an EE pose goal, e.g. pixi run send-pose -- --arm right --xyz 0.3 -0.2 0.3" }
 smoke = { cmd = "bash scripts/smoke_test.sh", depends-on = ["build"], description = "Headless bringup + pose goals on both arms" }
+# Head camera: /camera/image_raw(/compressed), /camera/camera_info with calibration_file:=<npz>
+camera = { cmd = "ros2 launch openarm_camera camera.launch.py", depends-on = ["build"], description = "Publish the head camera (V4L2/MJPEG)" }
+# Camera calibration from rosbags of the ChArUco board (see the script docstrings), e.g.
+#   pixi run calib-intrinsics -- <bag> --board ../SagresOverdose/charuco_board_settings.json --out calib/head_cam.npz
+#   pixi run calib-handeye -- <bag> --board ... --intrinsics calib/head_cam.npz --ee-frame openarm_right_hand
+calib-intrinsics = { cmd = "python scripts/calibrate_intrinsics.py", description = "Camera intrinsics from a ChArUco video or rosbag" }
+calib-handeye = { cmd = "python scripts/calibrate_handeye.py", description = "Head camera pose (eye-to-hand) from a ChArUco rosbag with /tf" }
+
 # Replay an R2R2R episode step by step (needs a running bringup), e.g.
 #   pixi run replay -- <episode dir> --mode dry
 replay = { cmd = "ros2 run openarm_ee_control traj_replay", description = "Replay an R2R2R episode through ee_pose_server" }

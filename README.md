@@ -79,7 +79,8 @@ pixi install -e policy                           # torch 2.5.1 (CUDA 12.4), diff
 # terminal 1: robot
 ros2 launch openarm_ee_control demo.launch.py use_fake_hardware:=false
 # terminal 2: camera driver publishing sensor_msgs/Image (rgb8/bgr8), same pose and aspect
-#             ratio as the camera the policy was rendered with
+#             ratio as the camera the policy was rendered with, e.g. `pixi run camera`
+#             (/camera/image_raw)
 # terminal 3: replay a generated episode first (checks frame, TCP, gripper)
 pixi run replay -- <output_data/.../successes/env_X> --mode dry   # shows it in RViz only
 pixi run replay -- <output_data/.../successes/env_X> --arms right  # Enter per move
@@ -124,6 +125,50 @@ drives, history length, chunk length, image size.
 the policy's actions (`--subsample 2`), goes to the episode's start pose (as above) and then replays it in
 Cartesian moves of `--steps-per-move` waypoints, with the same modes and checks.
 
+## Head camera and calibration
+
+`openarm_camera` publishes the HBV USB head camera (1920x1080 MJPEG at 30 fps by default):
+
+```bash
+pixi run camera                                                  # no camera_info yet
+ros2 launch openarm_camera camera.launch.py calibration_file:=$PWD/calib/head_cam.npz
+```
+
+| Topic | Type | |
+|---|---|---|
+| `/camera/image_raw/compressed` | `sensor_msgs/CompressedImage` | the camera's own JPEGs, passed through (record this one) |
+| `/camera/image_raw` | `sensor_msgs/Image` (bgr8) | decoded only while someone subscribes |
+| `/camera/camera_info` | `sensor_msgs/CameraInfo` | only with `calibration_file`, at the calibrated resolution |
+
+Images carry `frame_id` `camera_optical_frame`, which the Sagres URDF attaches to `camera_link`
+(REP 103 optical rotation). Other launch args: `device`, `width`, `height`, `fps`, `fourcc`,
+`autofocus`, `focus`, `exposure`.
+
+Calibration uses the ChArUco board in `SagresOverdose/charuco_board_settings.json` (5 x 4,
+32 mm squares). If the board as built differs from the nominal size, measure it and pass
+`--square-length` / `--marker-length` to both scripts.
+
+1. **Intrinsics.** With the camera running, record the hand-held board at 40-60 still poses
+   (tilted up to 45 deg, covering the image corners), then calibrate:
+   ```bash
+   ros2 bag record -o calib_intrinsics /camera/image_raw/compressed
+   pixi run calib-intrinsics -- calib_intrinsics --board ../SagresOverdose/charuco_board_settings.json \
+       --out calib/head_cam.npz --debug-dir calib/intrinsics_debug
+   ```
+2. **Camera pose (eye-to-hand).** Fix the board rigidly to one gripper (where exactly does not
+   matter), bring up the robot, and record 15-30 arm poses held ~2 s each. Rotate the gripper
+   about at least two axes (30 deg or more); translations alone leave the pose undetermined.
+   ```bash
+   ros2 bag record -o calib_handeye /camera/image_raw/compressed /tf /tf_static
+   pixi run calib-handeye -- calib_handeye --board ../SagresOverdose/charuco_board_settings.json \
+       --intrinsics calib/head_cam.npz --ee-frame openarm_right_hand --out calib/handeye.json \
+       --debug-dir calib/handeye_debug
+   ```
+   It prints `camera_xyz:=... camera_rpy:=...` for the URDF (`camera_link` in `world`) and
+   writes `world -> camera_optical_frame` plus the board's pose on the gripper to the JSON.
+   Check the reprojection RMS (should be a few px at most) and the debug images: red crosses
+   (predicted from the robot) on the green circles (detected).
+
 ## Real hardware
 
 ```bash
@@ -154,6 +199,8 @@ src/openarm_can           upstream, submodule: CAN library used by openarm_hardw
 src/openarm_ee_control    this repo: launch, MoveIt/controller config, pose server, send_pose,
                           step executor + traj_replay
 src/openarm_policy        this repo: R2R2R / tinydp policy node (pixi env `policy`)
+src/openarm_camera        this repo: head camera publisher
+scripts/calibrate_*.py    camera intrinsics and eye-to-hand calibration from rosbags
 third_party/tinydp        upstream, submodule: diffusion policy model code (not built by colcon)
 ```
 
